@@ -14,10 +14,9 @@ type Posting struct {
 }
 
 type Term struct {
-	Value       string  // string representaion of the Term
-	Idf         float32 // Inverse Document Frequency of the Term
-	numPostings uint32  // total number of positions for a term, index wide.
-	Postings    []Posting
+	Value    string  // string representaion of the Term
+	Idf      float32 // Inverse Document Frequency of the Term
+	Postings []Posting
 }
 
 type Page struct {
@@ -28,8 +27,8 @@ type Page struct {
 }
 
 type InvertedIndex struct {
-	docId   int
-	NumDocs int
+	docId   uint32
+	NumDocs uint32
 	index   map[string][]Posting
 
 	// docCategories will store parentIds for every document that blongs to a category
@@ -50,7 +49,7 @@ type InvertedIndex struct {
 	categoryBitmaps map[string]*roaring.Bitmap
 
 	// store page content for future use
-	documentStore []Document
+	store []string
 
 	// store field length in number of tokens
 	fieldLen []int
@@ -71,26 +70,26 @@ func NewInvertedIndex(analyzer Analyzer) *InvertedIndex {
 
 	idx.postings = make([]uint16, 0)
 
+	// document categories
+	idx.docCategory = make(map[string][]uint32)
+
 	idx.categoryBitmaps = make(map[string]*roaring.Bitmap)
 
 	// store field length in number of tokens
 	idx.fieldLen = make([]int, 0)
 
 	// store page content for future use
-	idx.documentStore = make([]Document, 0)
+	idx.store = make([]string, 0)
 
 	idx.analyzer = analyzer
 	return idx
 }
 
-func (idx *InvertedIndex) Add(doc Document) {
-	// Set the docId of the document. It will be used as primary key for almost everyhing
-	//doc.Id = idx.docId
-	doc.SetId(uint32(idx.docId))
+func (idx *InvertedIndex) Add(doc Document) uint32 {
+	// store docId as return value
+	docId := idx.docId
 
-	idx.parentIds = append(idx.parentIds, doc.ParentId())
-	// Start the Analysis process
-	//idx.analyze(doc)
+	// Start the analysis process
 	tokens := idx.analyzer.Analyze(doc.Text())
 
 	for key, val := range tokenPositions(tokens) {
@@ -98,70 +97,28 @@ func (idx *InvertedIndex) Add(doc Document) {
 		posting := Posting{uint32(idx.docId), uint16(len(val)), 1.0, idx.postingIndex}
 		idx.index[key] = append(idx.index[key], posting)
 
+		idx.postings = append(idx.postings, val...)
+
 		//increment postingIndex
 		idx.postingIndex += uint32(len(val))
 	}
 
 	// add document categories to index
 	for _, category := range doc.Category() {
-		idx.docCategory[category] = append(idx.docCategory[category], uint32(idx.docId))
+		idx.docCategory[category] = append(idx.docCategory[category], idx.docId)
 	}
 
 	// increment docId after ever document
 	idx.docId++
 
-	idx.documentStore = append(idx.documentStore, doc)
+	idx.store = append(idx.store, doc.Text())
 
 	idx.fieldLen = append(idx.fieldLen, len(tokens))
 
 	// increment total number of documents in index
 	idx.NumDocs++
-}
 
-func (idx *InvertedIndex) Original_Search(q string) []Posting {
-	tokens := idx.analyzer.Analyze(q)
-
-	var result []Posting
-	var temp []Posting
-	//result := make([]Posting, 0)
-
-	for i, token := range tokens {
-		if i == 0 {
-			//result = idx.index[token.value]
-			result = make([]Posting, len(idx.index[token.value]))
-			copy(result, idx.index[token.value])
-			//fmt.Println(result)
-			idx.scorePosting(result)
-			//fmt.Println(result)
-		} else {
-			//temp := idx.index[token.value]
-			temp = make([]Posting, len(idx.index[token.value]))
-			copy(temp, idx.index[token.value])
-			idx.scorePosting(temp)
-
-			// boolean AND query
-			// result = Intersection(temp, result)
-			// boolean OR query
-			//result = Union(temp, result)
-			// Phrase Query
-			result = PhraseQuery_FullMatch(result, temp, idx.postings)
-		}
-	}
-
-	//idx.getFacetCounts(result)
-
-	/*
-		if len(result) > 100 {
-			result = result[0:100]
-		}
-	*/
-
-	//fmt.Println(result)
-	sort.Sort(ByBoost(result))
-	//fmt.Println("-------------------------------------------------")
-	//fmt.Println(result)
-
-	return result
+	return docId
 }
 
 // TODO
@@ -236,18 +193,20 @@ func (idx *InvertedIndex) updateAvgFieldLen() {
 	idx.avgFieldLen = float64(total) / float64(idx.NumDocs)
 }
 
-func (idx *InvertedIndex) GetDocument(docId int) Document {
-	return idx.documentStore[docId]
+func (idx *InvertedIndex) GetText(docId uint32) string {
+	return idx.store[docId]
 }
 
 func (idx *InvertedIndex) scorePosting(postings []Posting) {
+	//fmt.Println(postings)
 	for i := range postings {
 		postings[i].boost = float32(idf(float64(len(postings)), float64(idx.NumDocs)) * tf(float64(postings[i].frequency), float64(idx.fieldLen[postings[i].docId]), idx.avgFieldLen))
 		//fmt.Println(postings[i].boost)
 	}
+	//fmt.Println(postings)
 }
 
-func (idx *InvertedIndex) buildCategoryBitmap() {
+func (idx *InvertedIndex) BuildCategoryBitmap() {
 
 	for k, v := range idx.docCategory {
 		rb := roaring.NewBitmap()

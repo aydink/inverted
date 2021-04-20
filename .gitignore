@@ -1,2 +1,4 @@
 *.exe
 inverted
+data/*.bz2
+out.txt
