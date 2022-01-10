@@ -40,15 +40,19 @@ func IndexSentence() {
 	for scanner.Scan() {
 		line := strings.Split(scanner.Text(), "\t")
 		if len(line) == 3 {
-			sentence := &Sentence{}
-			sentence.text = line[2]
-			sentence.category = append(sentence.category, line[1])
-			idx.Add(sentence)
+			if (line[1] == "eng") || (line[1] == "tur") {
 
-			if (counter % 10000) == 0 {
-				fmt.Println(counter, sentence)
+				sentence := &Sentence{}
+				sentence.text = line[2]
+				sentence.category = append(sentence.category, line[1])
+				idx.Add(sentence)
+
+				if (counter % 10000) == 0 {
+					fmt.Println(counter, sentence)
+				}
+				counter++
+
 			}
-			counter++
 		}
 	}
 
@@ -104,6 +108,8 @@ func main() {
 func SearchHandler(w http.ResponseWriter, r *http.Request) {
 	q := r.URL.Query().Get("q")
 	hits := idx.Search(q)
+
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 
 	fmt.Fprintln(w, "Number of hits:", len(hits), "<br>")
 	fmt.Fprintln(w, "<hr>")

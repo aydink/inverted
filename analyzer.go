@@ -1,5 +1,7 @@
 package main
 
+import "unicode"
+
 type Token struct {
 	start, end, position uint16
 	value                string
@@ -38,8 +40,12 @@ func (sa *SimpleAnalyzer) Analyze(s string) []Token {
 	return t
 }
 
-//var p = map[string]bool{'\'': true, ',': true, '.': true, ':': true, ';': true, '!': true, '?': true, '(': true, ')': true, '"': true, ' ': true, '\t': true, '\n': true, '\r': true, '|': true, '\\': true, '/': true, "“": true, "”": true, "@": true, "‘": true, "’": true, "…": true, "-": true, "*": true, "+": true, "%": true, "=": true, "$": true, "~": true, "&": true, "£": true, "₺": true, "{": true, "}": true, "[": true, "]": true, "^": true}
-var p = map[byte]bool{'\'': true, ',': true, '.': true, ':': true, ';': true, '!': true, '?': true, '(': true, ')': true, '"': true, ' ': true, '\t': true, '\n': true, '\r': true, '|': true, '\\': true, '/': true}
+/*
+
+var f = func(c rune) bool {
+	return !unicode.IsLetter(c) && !unicode.IsNumber(c)
+}
+*/
 
 type SimpleTokenizer struct{}
 
@@ -50,22 +56,35 @@ func NewSimpleTokenizer() SimpleTokenizer {
 func (tk SimpleTokenizer) Tokenize(s string) []Token {
 	var posToken uint16 = 0
 
-	i := 0
 	tokens := []Token{}
 	token := Token{start: 0, end: 0, position: 0, value: ""}
 
-	for i < len(s) {
+	insideToken := false
 
-		for (i < len(s)) && p[s[i]] {
-			i++
+	for pos, char := range s {
+		if unicode.IsLetter(char) || unicode.IsNumber(char) {
+			if !insideToken {
+				insideToken = true
+				token.start = uint16(pos)
+			}
+		} else {
+			if insideToken {
+				insideToken = false
+				token.end = uint16(pos)
+				token.value = s[token.start:token.end]
+
+				// handle zero length tokens
+				if token.start != token.end {
+					token.position = posToken
+					posToken++
+					tokens = append(tokens, token)
+				}
+			}
 		}
+	}
 
-		token.start = uint16(i)
-
-		for (i < len(s)) && !p[s[i]] {
-			i++
-		}
-		token.end = uint16(i)
+	if insideToken {
+		token.end = uint16(len(s))
 		token.value = s[token.start:token.end]
 
 		// handle zero length tokens
