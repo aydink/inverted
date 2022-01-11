@@ -8,6 +8,8 @@ import (
 	"os"
 	"strings"
 	"unicode"
+
+	"github.com/reiver/go-porterstemmer"
 )
 
 // TurkishLowercaseFilter lowercases all tokens respecting Tukish special lowercase rules like "İ"->"i", "I"->"ı"
@@ -40,24 +42,26 @@ func (tf turkishAccentFilter) Filter(tokens []Token) []Token {
 	return tokens
 }
 
-type turkishStemFilter struct{}
+type turkishStemFilter struct {
+	dict map[string]string
+}
 
 func NewTurkishStemFilter() TokenFilterer {
 	filter := turkishStemFilter{}
+	filter.dict = loadTurkishStems()
+	fmt.Println("Turkish stemmer dictionary loaded:", len(filter.dict), "items")
 	return filter
 }
 
 func (tf turkishStemFilter) Filter(tokens []Token) []Token {
 
 	for i := range tokens {
-		if val, ok := dict[tokens[i].value]; ok {
+		if val, ok := tf.dict[tokens[i].value]; ok {
 			tokens[i].value = val
 		}
 	}
 	return tokens
 }
-
-var dict map[string]string
 
 func loadTurkishStems() map[string]string {
 
@@ -89,7 +93,17 @@ func loadTurkishStems() map[string]string {
 	return dict
 }
 
-func init() {
-	dict = loadTurkishStems()
-	fmt.Println("Turkish stemmer dictionary loaded:", len(dict), "items")
+type englishStemFilter struct{}
+
+func NewEnglishStemFilter() TokenFilterer {
+	filter := englishStemFilter{}
+	return filter
+}
+
+func (tf englishStemFilter) Filter(tokens []Token) []Token {
+
+	for i := range tokens {
+		tokens[i].value = porterstemmer.StemString(tokens[i].value)
+	}
+	return tokens
 }
