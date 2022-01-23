@@ -160,9 +160,9 @@ func Intersection2(arr1, arr2 []Posting) []Posting {
 	i, j := 0, 0
 
 	for i < m && j < n {
-		if arr1[i].docId < arr2[j].docId {
+		if arr1[i].DocId < arr2[j].DocId {
 			i++
-		} else if arr2[j].docId < arr1[i].docId {
+		} else if arr2[j].DocId < arr1[i].DocId {
 			j++
 		} else { /* if arr1[i] == arr2[j] */
 			//fmt.Printf(" %d ", arr2[j])
@@ -191,12 +191,12 @@ func Intersection(arr1, arr2 []Posting) []Posting {
 	i, j := 0, 0
 
 	for i < m && j < n {
-		if arr1[i].docId < arr2[j].docId {
+		if arr1[i].DocId < arr2[j].DocId {
 			i++
-		} else if arr2[j].docId < arr1[i].docId {
+		} else if arr2[j].DocId < arr1[i].DocId {
 			j++
 		} else {
-			arr2[j].boost += arr1[i].boost
+			arr2[j].Boost += arr1[i].Boost
 			p = append(p, arr2[j])
 			j++
 			i++
@@ -215,14 +215,14 @@ func Union(arr1 []Posting, arr2 []Posting) []Posting {
 	p := make([]Posting, 0, m)
 
 	for i < m && j < n {
-		if arr1[i].docId < arr2[j].docId {
+		if arr1[i].DocId < arr2[j].DocId {
 			p = append(p, arr1[i])
 			i++
-		} else if arr2[j].docId < arr1[i].docId {
+		} else if arr2[j].DocId < arr1[i].DocId {
 			p = append(p, arr2[j])
 			j++
 		} else {
-			arr2[j].boost += arr1[i].boost
+			arr2[j].Boost += arr1[i].Boost
 			p = append(p, arr2[j])
 			j++
 			i++
@@ -259,9 +259,9 @@ func IntersectionPhraseQuery(p1, p2 []Posting, k int) []Posting {
 	i, j := 0, 0
 
 	for i < m && j < n {
-		if p1[i].docId < p2[j].docId {
+		if p1[i].DocId < p2[j].DocId {
 			i++
-		} else if p2[j].docId < p1[i].docId {
+		} else if p2[j].DocId < p1[i].DocId {
 			j++
 		} else { /* if p1[i] == p2[j] */
 			//fmt.Printf(" %d ", p2[j])
@@ -314,9 +314,9 @@ func PhraseQuery_FullMatch(p1, p2 []Posting) []Posting {
 	i, j := 0, 0
 
 	for i < m && j < n {
-		if p1[i].docId < p2[j].docId {
+		if p1[i].DocId < p2[j].DocId {
 			i++
-		} else if p2[j].docId < p1[i].docId {
+		} else if p2[j].DocId < p1[i].DocId {
 			j++
 		} else {
 
@@ -364,7 +364,7 @@ type ByBoost []Posting
 
 func (s ByBoost) Len() int           { return len(s) }
 func (s ByBoost) Swap(i, j int)      { s[i], s[j] = s[j], s[i] }
-func (s ByBoost) Less(i, j int) bool { return s[i].boost > s[j].boost }
+func (s ByBoost) Less(i, j int) bool { return s[i].Boost > s[j].Boost }
 
 type ByValue []Term
 

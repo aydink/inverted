@@ -6,19 +6,10 @@ import (
 	"github.com/RoaringBitmap/roaring"
 )
 
-/*
 type Posting struct {
-	docId     uint32
-	frequency uint16
-	boost     float32
-	offset    uint32
-}
-*/
-
-type Posting struct {
-	docId     uint32
+	DocId     uint32
 	frequency uint32
-	boost     float32
+	Boost     float32
 	positions []uint32
 }
 
@@ -37,22 +28,11 @@ type InvertedIndex struct {
 	// docCategories will store parentIds for every document that blongs to a category
 	parentIds []uint32
 
-	// store all posting information for tokens
-	// we use a huge slice to avoid using position slices for each posting
-	// which add 24 byte memory overhead
-	//postings []uint16
-
-	// current posting index
-	//postingIndex uint32
-
 	// document categories
 	docCategory map[string][]uint32
 
 	// roaring bitmaps to store bookCategory bitmaps
 	categoryBitmaps map[string]*roaring.Bitmap
-
-	// store page content for future use
-	store []string
 
 	// store field length in number of tokens
 	fieldLen []int
@@ -82,7 +62,7 @@ func NewInvertedIndex(analyzer Analyzer) *InvertedIndex {
 	idx.fieldLen = make([]int, 0)
 
 	// store page content for future use
-	idx.store = make([]string, 0)
+	//idx.store = make([]string, 0)
 
 	idx.analyzer = analyzer
 	return idx
@@ -114,7 +94,7 @@ func (idx *InvertedIndex) Add(doc Document) uint32 {
 	// increment docId after ever document
 	idx.docId++
 
-	idx.store = append(idx.store, doc.Text())
+	//idx.store = append(idx.store, doc.Text())
 
 	idx.fieldLen = append(idx.fieldLen, len(tokens))
 
@@ -186,7 +166,7 @@ func (idx *InvertedIndex) Search(q string) []Posting {
 	return result
 }
 
-func (idx *InvertedIndex) updateAvgFieldLen() {
+func (idx *InvertedIndex) UpdateAvgFieldLen() {
 	total := 0
 
 	for _, v := range idx.fieldLen {
@@ -196,14 +176,10 @@ func (idx *InvertedIndex) updateAvgFieldLen() {
 	idx.avgFieldLen = float64(total) / float64(idx.NumDocs)
 }
 
-func (idx *InvertedIndex) GetText(docId uint32) string {
-	return idx.store[docId]
-}
-
 func (idx *InvertedIndex) scorePosting(postings []Posting) {
 	//fmt.Println(postings)
 	for i := range postings {
-		postings[i].boost = float32(idf(float64(len(postings)), float64(idx.NumDocs)) * tf(float64(postings[i].frequency), float64(idx.fieldLen[postings[i].docId]), idx.avgFieldLen))
+		postings[i].Boost = float32(idf(float64(len(postings)), float64(idx.NumDocs)) * tf(float64(postings[i].frequency), float64(idx.fieldLen[postings[i].DocId]), idx.avgFieldLen))
 		//fmt.Println(postings[i].boost)
 	}
 	//fmt.Println(postings)
@@ -218,12 +194,12 @@ func (idx *InvertedIndex) BuildCategoryBitmap() {
 	}
 }
 
-func (idx *InvertedIndex) getFacetCounts(postings []Posting) []FacetCount {
+func (idx *InvertedIndex) GetFacetCounts(postings []Posting) []FacetCount {
 	facetCounts := make([]FacetCount, 0)
 
 	rb := roaring.NewBitmap()
 	for _, posting := range postings {
-		rb.Add(posting.docId)
+		rb.Add(posting.DocId)
 	}
 
 	for k, v := range idx.categoryBitmaps {
@@ -243,13 +219,13 @@ func (idx *InvertedIndex) getFacetCounts(postings []Posting) []FacetCount {
 	return facetCounts
 }
 
-func (idx *InvertedIndex) facetFilterCategory(postings []Posting, category string) []Posting {
+func (idx *InvertedIndex) FacetFilterCategory(postings []Posting, category string) []Posting {
 
 	result := make([]Posting, 0)
 	rb := idx.categoryBitmaps[category]
 
 	for _, posting := range postings {
-		if rb.Contains(posting.docId) {
+		if rb.Contains(posting.DocId) {
 			result = append(result, posting)
 		}
 	}

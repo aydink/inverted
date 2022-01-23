@@ -16,10 +16,10 @@ func NewSimpleHighlighter(analyzer Analyzer) SimpleHighlighter {
 Do actual text highlighting like <b>term</b>
 both document text and query terms are tokenized using the provided Analyzer
 */
-func (hl SimpleHighlighter) Highlight(pre, post, text, query string) string {
+func (hl *SimpleHighlighter) Highlight(pre, post, text, query string) string {
 
-	queryTokens := idx.analyzer.Analyze(query)
-	textTokens := idx.analyzer.Analyze(text)
+	queryTokens := hl.analyzer.Analyze(query)
+	textTokens := hl.analyzer.Analyze(text)
 
 	//fmt.Println(textTokens)
 	//fmt.Println(queryTokens)
