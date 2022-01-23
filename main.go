@@ -1,4 +1,4 @@
-package main
+package inverted
 
 import (
 	"bufio"
@@ -40,7 +40,8 @@ func IndexSentence() {
 	for scanner.Scan() {
 		line := strings.Split(scanner.Text(), "\t")
 		if len(line) == 3 {
-			if (line[1] == "eng") || (line[1] == "tur") {
+			//if (line[1] == "eng") || (line[1] == "tur") {
+			if line[1] == "tur" {
 				sentence := &Sentence{}
 				sentence.text = line[2]
 				sentence.category = append(sentence.category, line[1])
@@ -60,14 +61,17 @@ func IndexSentence() {
 }
 
 var idx *InvertedIndex
+var simpleHighlighter SimpleHighlighter
 
 func main() {
 
 	analyzer := NewSimpleAnalyzer(NewSimpleTokenizer())
 	analyzer.AddTokenFilter(NewTurkishLowercaseFilter())
 	analyzer.AddTokenFilter(NewTurkishAccentFilter())
-	//analyzer.AddTokenFilter(NewTurkishStemFilter())
-	analyzer.AddTokenFilter(NewEnglishStemFilter())
+	analyzer.AddTokenFilter(NewTurkishStemFilter())
+	//analyzer.AddTokenFilter(NewEnglishStemFilter())
+
+	simpleHighlighter = NewSimpleHighlighter(analyzer)
 
 	idx = NewInvertedIndex(analyzer)
 
@@ -99,6 +103,7 @@ func main() {
 	*/
 
 	http.HandleFunc("/search", SearchHandler)
+	http.HandleFunc("/stats", StatsHandler)
 	http.ListenAndServe(":8080", nil)
 }
 
@@ -107,7 +112,7 @@ func SearchHandler(w http.ResponseWriter, r *http.Request) {
 	hits := idx.Search(q)
 
 	fmt.Println(idx.getFacetCounts(hits))
-	hits = idx.facetFilterCategory(hits, "eng")
+	//hits = idx.facetFilterCategory(hits, "eng")
 
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 
@@ -119,6 +124,15 @@ func SearchHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	for k, v := range hits {
-		fmt.Fprintf(w, "%d\t%f\t%s<br>", k+1, v.boost, idx.store[v.docId])
+		fmt.Fprintf(w, "%d\t%f\t%s<br>", k+1, v.boost, simpleHighlighter.Highlight("<b>", "</b>", idx.store[v.docId], q))
+	}
+}
+
+func StatsHandler(w http.ResponseWriter, r *http.Request) {
+
+	pairs := idx.TokenStats()
+
+	for _, pair := range pairs {
+		fmt.Fprintf(w, "%s - %d\n", pair.Name, pair.Count)
 	}
 }

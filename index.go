@@ -1,4 +1,4 @@
-package main
+package inverted
 
 import (
 	"sort"
@@ -6,11 +6,20 @@ import (
 	"github.com/RoaringBitmap/roaring"
 )
 
+/*
 type Posting struct {
 	docId     uint32
 	frequency uint16
 	boost     float32
 	offset    uint32
+}
+*/
+
+type Posting struct {
+	docId     uint32
+	frequency uint32
+	boost     float32
+	positions []uint32
 }
 
 type Term struct {
@@ -19,13 +28,7 @@ type Term struct {
 	Postings []Posting
 }
 
-type Page struct {
-	Id         int    `json:"id"`
-	BookId     int    `json:"book_id"`
-	Content    string `json:"content"`
-	PageNumber int    `json:"page_number"`
-}
-
+// The main struct that represent an Inveted Index
 type InvertedIndex struct {
 	docId   uint32
 	NumDocs uint32
@@ -37,10 +40,10 @@ type InvertedIndex struct {
 	// store all posting information for tokens
 	// we use a huge slice to avoid using position slices for each posting
 	// which add 24 byte memory overhead
-	postings []uint16
+	//postings []uint16
 
 	// current posting index
-	postingIndex uint32
+	//postingIndex uint32
 
 	// document categories
 	docCategory map[string][]uint32
@@ -68,7 +71,7 @@ func NewInvertedIndex(analyzer Analyzer) *InvertedIndex {
 	idx.index = make(map[string][]Posting)
 	idx.parentIds = make([]uint32, 0)
 
-	idx.postings = make([]uint16, 0)
+	//idx.postings = make([]uint16, 0)
 
 	// document categories
 	idx.docCategory = make(map[string][]uint32)
@@ -94,13 +97,13 @@ func (idx *InvertedIndex) Add(doc Document) uint32 {
 
 	for key, val := range tokenPositions(tokens) {
 		//fmt.Println(key, val)
-		posting := Posting{uint32(idx.docId), uint16(len(val)), 1.0, idx.postingIndex}
+		posting := Posting{idx.docId, uint32(len(val)), 1.0, val}
 		idx.index[key] = append(idx.index[key], posting)
 
-		idx.postings = append(idx.postings, val...)
+		//idx.postings = append(idx.postings, val...)
 
 		//increment postingIndex
-		idx.postingIndex += uint32(len(val))
+		//idx.postingIndex += uint32(len(val))
 	}
 
 	// add document categories to index
@@ -169,7 +172,7 @@ func (idx *InvertedIndex) Search(q string) []Posting {
 			// boolean OR query
 			//result = Union(temp, result)
 			// Phrase Query
-			resultPhrase = PhraseQuery_FullMatch(resultPhrase, temp, idx.postings)
+			resultPhrase = PhraseQuery_FullMatch(resultPhrase, temp)
 		}
 	}
 
@@ -253,7 +256,7 @@ func (idx *InvertedIndex) facetFilterCategory(postings []Posting, category strin
 	return result
 }
 
-func (idx *InvertedIndex) tokenStats() []FacetCount {
+func (idx *InvertedIndex) TokenStats() []FacetCount {
 
 	stats := make([]FacetCount, 0)
 
@@ -276,8 +279,8 @@ func (idx *InvertedIndex) tokenStats() []FacetCount {
 }
 
 // tokenPositions calculate position data for each token
-func tokenPositions(tokens []Token) map[string][]uint16 {
-	tp := make(map[string][]uint16)
+func tokenPositions(tokens []Token) map[string][]uint32 {
+	tp := make(map[string][]uint32)
 
 	for i := range tokens {
 		tp[tokens[i].value] = append(tp[tokens[i].value], tokens[i].position)

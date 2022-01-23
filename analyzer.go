@@ -1,9 +1,9 @@
-package main
+package inverted
 
 import "unicode"
 
 type Token struct {
-	start, end, position uint16
+	start, end, position uint32
 	value                string
 }
 
@@ -54,7 +54,7 @@ func NewSimpleTokenizer() SimpleTokenizer {
 }
 
 func (tk SimpleTokenizer) Tokenize(s string) []Token {
-	var posToken uint16 = 0
+	var posToken uint32 = 0
 
 	tokens := []Token{}
 	token := Token{start: 0, end: 0, position: 0, value: ""}
@@ -65,12 +65,12 @@ func (tk SimpleTokenizer) Tokenize(s string) []Token {
 		if unicode.IsLetter(char) || unicode.IsNumber(char) {
 			if !insideToken {
 				insideToken = true
-				token.start = uint16(pos)
+				token.start = uint32(pos)
 			}
 		} else {
 			if insideToken {
 				insideToken = false
-				token.end = uint16(pos)
+				token.end = uint32(pos)
 				token.value = s[token.start:token.end]
 
 				// handle zero length tokens
@@ -84,7 +84,7 @@ func (tk SimpleTokenizer) Tokenize(s string) []Token {
 	}
 
 	if insideToken {
-		token.end = uint16(len(s))
+		token.end = uint32(len(s))
 		token.value = s[token.start:token.end]
 
 		// handle zero length tokens

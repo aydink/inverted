@@ -1,4 +1,4 @@
-package main
+package inverted
 
 import (
 	"os"
@@ -195,8 +195,7 @@ func Intersection(arr1, arr2 []Posting) []Posting {
 			i++
 		} else if arr2[j].docId < arr1[i].docId {
 			j++
-		} else { /* if arr1[i] == arr2[j] */
-			//fmt.Printf(" %d ", arr2[j])
+		} else {
 			arr2[j].boost += arr1[i].boost
 			p = append(p, arr2[j])
 			j++
@@ -219,29 +218,24 @@ func Union(arr1 []Posting, arr2 []Posting) []Posting {
 		if arr1[i].docId < arr2[j].docId {
 			p = append(p, arr1[i])
 			i++
-			//cout << arr1[i++] << " ";
 		} else if arr2[j].docId < arr1[i].docId {
 			p = append(p, arr2[j])
 			j++
-			//cout << arr2[j++] << " ";
 		} else {
 			arr2[j].boost += arr1[i].boost
 			p = append(p, arr2[j])
 			j++
-			//cout << arr2[j++] << " ";
 			i++
 		}
 	}
 
 	/* Print remaining elements of the larger array */
 	for i < m {
-		//cout << arr1[i++] << " ";
 		p = append(p, arr1[i])
 		i++
 	}
 
 	for j < n {
-		//cout << arr2[j++] << " ";
 		p = append(p, arr2[j])
 		j++
 	}
@@ -249,7 +243,7 @@ func Union(arr1 []Posting, arr2 []Posting) []Posting {
 	return p
 }
 
-func IntersectionPhraseQuery(p1, p2 []Posting, k int, positions []uint16) []Posting {
+func IntersectionPhraseQuery(p1, p2 []Posting, k int) []Posting {
 	m := len(p1)
 	n := len(p2)
 
@@ -275,16 +269,13 @@ func IntersectionPhraseQuery(p1, p2 []Posting, k int, positions []uint16) []Post
 			//p = append(p, p2[j])
 			//------------------------------------------------------------
 
-			//pp1 := p1[i].positions
-			pp1 := positions[p1[i].offset : p1[i].offset+uint32(p1[i].frequency)]
-			//pp2 := p2[j].positions
-			pp2 := positions[p2[j].offset : p2[j].offset+uint32(p2[j].frequency)]
+			pp1 := p1[i].positions
+			pp2 := p2[j].positions
 
-			//m1 := len(p1[i].positions)
-			m1 := p1[i].frequency
-			n1 := p2[j].frequency
+			m1 := len(p1[i].positions)
+			n1 := len(p2[j].positions)
 
-			var i1, j1 uint16
+			i1, j1 := 0, 0
 
 			for i1 < m1 && j1 < n1 {
 				if abs(int(pp1[i1])-int(pp2[j1])) <= k {
@@ -307,7 +298,7 @@ func IntersectionPhraseQuery(p1, p2 []Posting, k int, positions []uint16) []Post
 	return p
 }
 
-func PhraseQuery_FullMatch(p1, p2 []Posting, positions []uint16) []Posting {
+func PhraseQuery_FullMatch(p1, p2 []Posting) []Posting {
 	m := len(p1)
 	n := len(p2)
 
@@ -329,16 +320,13 @@ func PhraseQuery_FullMatch(p1, p2 []Posting, positions []uint16) []Posting {
 			j++
 		} else {
 
-			//pp1 := p1[i].positions
-			pp1 := positions[p1[i].offset : p1[i].offset+uint32(p1[i].frequency)]
-			//pp2 := p2[j].positions
-			pp2 := positions[p2[j].offset : p2[j].offset+uint32(p2[j].frequency)]
+			pp1 := p1[i].positions
+			pp2 := p2[j].positions
 
-			//m1 := len(p1[i].positions)
-			m1 := p1[i].frequency
-			n1 := p2[j].frequency
+			m1 := len(p1[i].positions)
+			n1 := len(p2[j].positions)
 
-			var i1, j1 uint16
+			i1, j1 := 0, 0
 
 			for i1 < m1 && j1 < n1 {
 				//if abs(int(pp1[i1])-int(pp2[j1])) <= k {

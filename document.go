@@ -1,4 +1,4 @@
-package main
+package inverted
 
 type Document interface {
 	Text() string

@@ -1,9 +1,8 @@
-package main
+package inverted
 
 import (
 	"bufio"
 	"compress/gzip"
-	"fmt"
 	"log"
 	"os"
 	"strings"
@@ -12,7 +11,8 @@ import (
 	"github.com/reiver/go-porterstemmer"
 )
 
-// TurkishLowercaseFilter lowercases all tokens respecting Tukish special lowercase rules like "İ"->"i", "I"->"ı"
+// TurkishLowercaseFilter lowercases all tokens
+// respecting Tukish special lowercase rules like "İ"->"i", "I"->"ı"
 type turkishLowercaseFilter struct{}
 
 func NewTurkishLowercaseFilter() TokenFilterer {
@@ -49,7 +49,7 @@ type turkishStemFilter struct {
 func NewTurkishStemFilter() TokenFilterer {
 	filter := turkishStemFilter{}
 	filter.dict = loadTurkishStems()
-	fmt.Println("Turkish stemmer dictionary loaded:", len(filter.dict), "items")
+	log.Println("Turkish stemmer dictionary loaded:", len(filter.dict), "items")
 	return filter
 }
 

@@ -1,4 +1,4 @@
-package main
+package inverted
 
 type FacetCount struct {
 	Name  string
