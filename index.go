@@ -1,10 +1,17 @@
 package inverted
 
 import (
+	"log"
 	"sort"
 
 	"github.com/RoaringBitmap/roaring"
 )
+
+type StrogeBackend interface {
+	getPosting() []Posting
+	getFieldLengths() []uint32
+	getCategoryBitmaps() *roaring.Bitmap
+}
 
 type Posting struct {
 	DocId     uint32
@@ -25,9 +32,6 @@ type InvertedIndex struct {
 	NumDocs uint32
 	index   map[string][]Posting
 
-	// docCategories will store parentIds for every document that blongs to a category
-	parentIds []uint32
-
 	// document categories
 	docCategory map[string][]uint32
 
@@ -35,13 +39,16 @@ type InvertedIndex struct {
 	categoryBitmaps map[string]*roaring.Bitmap
 
 	// store field length in number of tokens
-	fieldLen []int
+	fieldLen []uint32
 
 	// avarage field length
 	avgFieldLen float64
 
 	// Analyzer to use for text analysis and tokenization
 	analyzer Analyzer
+
+	// Storage backend
+	readOnly bool
 }
 
 func NewInvertedIndex(analyzer Analyzer) *InvertedIndex {
@@ -49,9 +56,6 @@ func NewInvertedIndex(analyzer Analyzer) *InvertedIndex {
 	idx.docId = 0
 
 	idx.index = make(map[string][]Posting)
-	idx.parentIds = make([]uint32, 0)
-
-	//idx.postings = make([]uint16, 0)
 
 	// document categories
 	idx.docCategory = make(map[string][]uint32)
@@ -59,44 +63,41 @@ func NewInvertedIndex(analyzer Analyzer) *InvertedIndex {
 	idx.categoryBitmaps = make(map[string]*roaring.Bitmap)
 
 	// store field length in number of tokens
-	idx.fieldLen = make([]int, 0)
-
-	// store page content for future use
-	//idx.store = make([]string, 0)
+	idx.fieldLen = make([]uint32, 0)
 
 	idx.analyzer = analyzer
+
+	// this is an in memory index
+	idx.readOnly = false
 	return idx
 }
 
-func (idx *InvertedIndex) Add(doc Document) uint32 {
+func (idx *InvertedIndex) Add(doc string, categories []string) uint32 {
+
+	if idx.readOnly {
+		log.Fatalln("The index is in read only mode!")
+	}
 	// store docId as return value
 	docId := idx.docId
 
 	// Start the analysis process
-	tokens := idx.analyzer.Analyze(doc.Text())
+	tokens := idx.analyzer.Analyze(doc)
 
 	for key, val := range tokenPositions(tokens) {
 		//fmt.Println(key, val)
 		posting := Posting{idx.docId, uint32(len(val)), 1.0, val}
 		idx.index[key] = append(idx.index[key], posting)
-
-		//idx.postings = append(idx.postings, val...)
-
-		//increment postingIndex
-		//idx.postingIndex += uint32(len(val))
 	}
 
 	// add document categories to index
-	for _, category := range doc.Category() {
+	for _, category := range categories {
 		idx.docCategory[category] = append(idx.docCategory[category], idx.docId)
 	}
 
 	// increment docId after ever document
 	idx.docId++
 
-	//idx.store = append(idx.store, doc.Text())
-
-	idx.fieldLen = append(idx.fieldLen, len(tokens))
+	idx.fieldLen = append(idx.fieldLen, uint32(len(tokens)))
 
 	// increment total number of documents in index
 	idx.NumDocs++
@@ -104,73 +105,11 @@ func (idx *InvertedIndex) Add(doc Document) uint32 {
 	return docId
 }
 
-// TODO
-func (idx *InvertedIndex) Search(q string) []Posting {
-	tokens := idx.analyzer.Analyze(q)
-
-	var result []Posting
-	var temp []Posting
-	var resultPhrase []Posting
-
-	for i, token := range tokens {
-		if i == 0 {
-			result = make([]Posting, len(idx.index[token.value]))
-			copy(result, idx.index[token.value])
-			//fmt.Println(result)
-			idx.scorePosting(result)
-			//fmt.Println(result)
-		} else {
-			//temp := idx.index[token.value]
-			temp = make([]Posting, len(idx.index[token.value]))
-			copy(temp, idx.index[token.value])
-			idx.scorePosting(temp)
-
-			// boolean AND query
-			result = Intersection(temp, result)
-			// boolean OR query
-			//result = Union(temp, result)
-			// Phrase Query
-			//result = PhraseQuery_FullMatch(result, temp)
-		}
-	}
-
-	for i, token := range tokens {
-		if i == 0 {
-			resultPhrase = make([]Posting, len(idx.index[token.value]))
-			copy(resultPhrase, idx.index[token.value])
-			//fmt.Println(result)
-			idx.scorePosting(result)
-			//fmt.Println(result)
-		} else {
-			//temp := idx.index[token.value]
-			temp = make([]Posting, len(idx.index[token.value]))
-			copy(temp, idx.index[token.value])
-			idx.scorePosting(temp)
-
-			// boolean AND query
-			// result = Intersection(temp, result)
-			// boolean OR query
-			//result = Union(temp, result)
-			// Phrase Query
-			resultPhrase = PhraseQuery_FullMatch(resultPhrase, temp)
-		}
-	}
-
-	result = Union(result, resultPhrase)
-
-	//fmt.Println(result)
-	sort.Sort(ByBoost(result))
-	//fmt.Println("-------------------------------------------------")
-	//fmt.Println(result)
-
-	return result
-}
-
 func (idx *InvertedIndex) UpdateAvgFieldLen() {
 	total := 0
 
 	for _, v := range idx.fieldLen {
-		total += v
+		total += int(v)
 	}
 
 	idx.avgFieldLen = float64(total) / float64(idx.NumDocs)
@@ -246,7 +185,6 @@ func (idx *InvertedIndex) TokenStats() []FacetCount {
 		}
 
 		fc.Count = counter
-
 		stats = append(stats, fc)
 	}
 
@@ -263,4 +201,24 @@ func tokenPositions(tokens []Token) map[string][]uint32 {
 	}
 
 	return tp
+}
+
+func (idx *InvertedIndex) calculateIndexSize() {
+
+	numPosting := 0
+	numPositions := 0
+
+	for _, v := range idx.index {
+		numPosting += len(v)
+		for _, p := range v {
+			numPositions += len(p.positions)
+		}
+	}
+
+	ramPosting := numPosting * 40
+	ramPositions := numPositions * 4
+
+	log.Printf("numPosting:%d, numPositions:%d", numPosting, numPositions)
+	log.Printf("ramPosting:%d, ramPositions:%d", ramPosting, ramPositions)
+
 }

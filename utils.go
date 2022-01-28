@@ -1,6 +1,7 @@
 package inverted
 
 import (
+	"math"
 	"os"
 	"strings"
 
@@ -32,6 +33,25 @@ func int32ToBytes(x int32) []byte {
 
 func bytesToInt32le(b []byte) int32 {
 	return int32(b[0]) | int32(b[1])<<8 | int32(b[2])<<16 | int32(b[3])<<24
+}
+
+func float64ToBytes(f float64) []byte {
+	var buf [8]byte
+	n := math.Float64bits(f)
+	buf[0] = byte(n >> 0)
+	buf[1] = byte(n >> 8)
+	buf[2] = byte(n >> 16)
+	buf[3] = byte(n >> 24)
+	buf[4] = byte(n >> 32)
+	buf[5] = byte(n >> 40)
+	buf[6] = byte(n >> 48)
+	buf[7] = byte(n >> 56)
+	return buf[:]
+}
+
+func bytesToFloat64(b []byte) float64 {
+	n := uint64(b[0]) | uint64(b[1])<<8 | uint64(b[2])<<16 | uint64(b[3])<<24 | uint64(b[4])<<32 | uint64(b[5])<<40 | uint64(b[6])<<48 | uint64(b[7])<<56
+	return math.Float64frombits(n)
 }
 
 func abs(x int) int {
@@ -375,18 +395,4 @@ func (a ByValue) Less(i, j int) bool { return a[i].Value < a[j].Value }
 func TurkishStringComparer() *collate.Collator {
 	col := collate.New(language.Turkish, collate.Numeric, collate.IgnoreCase)
 	return col
-}
-
-type byValue []uint32
-
-func (f byValue) Len() int {
-	return len(f)
-}
-
-func (f byValue) Less(i, j int) bool {
-	return f[i] < f[j]
-}
-
-func (f byValue) Swap(i, j int) {
-	f[i], f[j] = f[j], f[i]
 }
