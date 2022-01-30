@@ -203,7 +203,7 @@ func tokenPositions(tokens []Token) map[string][]uint32 {
 	return tp
 }
 
-func (idx *InvertedIndex) calculateIndexSize() {
+func (idx *InvertedIndex) CalculateIndexSize() {
 
 	numPosting := 0
 	numPositions := 0
@@ -220,5 +220,17 @@ func (idx *InvertedIndex) calculateIndexSize() {
 
 	log.Printf("numPosting:%d, numPositions:%d", numPosting, numPositions)
 	log.Printf("ramPosting:%d, ramPositions:%d", ramPosting, ramPositions)
+}
 
+func (idx *InvertedIndex) AnalyzeText(value string) []string {
+
+	tokens := idx.analyzer.Analyze(value)
+	s := make([]string, 0)
+	for _, token := range tokens {
+		if token.value != "" {
+			s = append(s, token.value)
+		}
+	}
+
+	return s
 }

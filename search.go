@@ -224,3 +224,58 @@ func (idx *InvertedIndex) Search_Mixed_v2(q string) []Posting {
 
 	return result
 }
+
+func (idx *InvertedIndex) SearchOr(q string) []Posting {
+	tokens := idx.analyzer.Analyze(q)
+
+	var result []Posting
+	var resultPhrase []Posting
+	var temp []Posting
+
+	postings := make(map[int][]Posting)
+
+	for i, token := range tokens {
+		if idx.readOnly {
+			postings[i] = ReadPosting_Cdb(token.value)
+			idx.scorePosting(postings[i])
+		} else {
+			postings[i] = make([]Posting, len(idx.index[token.value]))
+			copy(postings[i], idx.index[token.value])
+			idx.scorePosting(postings[i])
+		}
+	}
+
+	// Apply OR operation
+	for i := range tokens {
+		if i == 0 {
+			result = postings[i]
+		} else {
+			result = Union(result, postings[i])
+		}
+	}
+
+	// Apply Phrase query scoring only if more than 1 query term exist
+	if len(tokens) > 1 {
+		for i := range tokens {
+			if i == 0 {
+				resultPhrase = make([]Posting, len(postings[i]))
+				copy(resultPhrase, postings[i])
+				//resultPhrase = resetScore(resultPhrase)
+			} else {
+				temp = make([]Posting, len(postings[i]))
+				copy(temp, postings[i])
+				//temp = resetScore(temp)
+				resultPhrase = PhraseQuery_FullMatch(resultPhrase, temp)
+				result = Union(result, resultPhrase)
+			}
+		}
+
+	}
+
+	//fmt.Println(result)
+	sort.Sort(ByBoost(result))
+	//fmt.Println("-------------------------------------------------")
+	//fmt.Println(result)
+
+	return result
+}
