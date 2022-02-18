@@ -10,8 +10,8 @@ type SimpleHighlighter struct {
 	post     string
 }
 
-func NewSimpleHighlighter(analyzer Analyzer) SimpleHighlighter {
-	return SimpleHighlighter{analyzer, "<b>", "</b>"}
+func NewSimpleHighlighter(analyzer Analyzer) *SimpleHighlighter {
+	return &SimpleHighlighter{analyzer, "<b>", "</b>"}
 }
 
 func (hl *SimpleHighlighter) HighlightParams(pre, post string) {
@@ -68,8 +68,8 @@ type SpanHighlighter struct {
 	snippetSize   int
 }
 
-func NewSpanHighlighter(analyzer Analyzer) SpanHighlighter {
-	return SpanHighlighter{analyzer, "<b>", "</b>", "<br>", 200}
+func NewSpanHighlighter(analyzer Analyzer) *SpanHighlighter {
+	return &SpanHighlighter{analyzer, "<b>", "</b>", "<br>", 200}
 }
 
 func (hl *SpanHighlighter) HighlightParams(pre, post, spanDelimeter string, snippetSize int) {

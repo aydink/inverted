@@ -7,12 +7,6 @@ import (
 	"github.com/RoaringBitmap/roaring"
 )
 
-type StrogeBackend interface {
-	getPosting() []Posting
-	getFieldLengths() []uint32
-	getCategoryBitmaps() *roaring.Bitmap
-}
-
 type Posting struct {
 	DocId     uint32
 	frequency uint32
@@ -153,12 +147,11 @@ func (idx *InvertedIndex) GetFacetCounts(postings []Posting) []FacetCount {
 	}
 
 	sort.Sort(byFacetCount(facetCounts))
-	//fmt.Printf("%+v\n", facetCounts)
 
 	return facetCounts
 }
 
-func (idx *InvertedIndex) FacetFilterCategory(postings []Posting, category string) []Posting {
+func (idx *InvertedIndex) FacetFilter(postings []Posting, category string) []Posting {
 
 	result := make([]Posting, 0)
 	rb := idx.categoryBitmaps[category]
@@ -169,6 +162,15 @@ func (idx *InvertedIndex) FacetFilterCategory(postings []Posting, category strin
 		}
 	}
 	return result
+}
+
+func (idx *InvertedIndex) Filter(category string) *roaring.Bitmap {
+
+	if val, ok := idx.categoryBitmaps[category]; ok {
+		return val.Clone()
+	}
+
+	return roaring.NewBitmap()
 }
 
 func (idx *InvertedIndex) TokenStats() []FacetCount {

@@ -103,22 +103,31 @@ func deserializePostings(buf []byte) ([]Posting, error) {
 }
 
 // Marshall inverted index to CDB database
-func (idx *InvertedIndex) MarshalIndex() {
+func (idx *InvertedIndex) MarshalIndex() error {
+	if idx.readOnly {
+		log.Println("Index is in 'read only' mode hence cannot be marshalled to disk")
+		return errors.New("index is in 'read only' mode")
+	}
 
 	err := idx.serializeIndex()
 	if err != nil {
 		log.Println(err)
+		return err
 	}
 
 	err = idx.serializeDocumentCategories()
 	if err != nil {
 		log.Println(err)
+		return err
 	}
 
 	err = idx.serializeIndexMetadata()
 	if err != nil {
 		log.Println(err)
+		return err
 	}
+
+	return nil
 }
 
 // Serialize term=>postings dictionary to CDB database
@@ -210,7 +219,7 @@ func ReadDocument_Cdb(docId uint32) (string, error) {
 	return string(buf), nil
 }
 
-func LoadTermDictionary() (map[string][]Posting, error) {
+func loadTermDictionary() (map[string][]Posting, error) {
 
 	index := make(map[string][]Posting)
 

@@ -107,3 +107,51 @@ func (tf englishStemFilter) Filter(tokens []Token) []Token {
 	}
 	return tokens
 }
+
+type stopFilter struct {
+	list map[string]bool
+}
+
+func NewStopFilter(stopList []string) TokenFilterer {
+	filter := &stopFilter{}
+	filter.list = make(map[string]bool)
+
+	for _, v := range stopList {
+		filter.list[v] = true
+	}
+
+	return filter
+}
+
+func (tf *stopFilter) Filter(tokens []Token) []Token {
+	s := make([]Token, 0)
+
+	for i := range tokens {
+		if _, ok := tf.list[tokens[i].value]; !ok {
+			s = append(s, tokens[i])
+		}
+	}
+	return s
+}
+
+type maxLengthFilter struct {
+	maxTokenLength int
+}
+
+func NewMaxLengthFilter(maxTokenLength int) TokenFilterer {
+	filter := &maxLengthFilter{maxTokenLength}
+	return filter
+}
+
+func (tf *maxLengthFilter) Filter(tokens []Token) []Token {
+
+	for i := range tokens {
+		r := []rune(tokens[i].value)
+		if len(r) > tf.maxTokenLength {
+			r = r[:tf.maxTokenLength]
+			tokens[i].value = string(r)
+		}
+	}
+
+	return tokens
+}

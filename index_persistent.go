@@ -44,7 +44,7 @@ func NewInvertedIndexFromFile(analyzer Analyzer, loadIntoMemory bool) *InvertedI
 	idx.fieldLen = deserializeFieldLen(buf)
 
 	if loadIntoMemory {
-		termDictionary, err := LoadTermDictionary()
+		termDictionary, err := loadTermDictionary()
 		if err != nil {
 			log.Fatalln(err)
 		}

@@ -1,6 +1,8 @@
 package inverted
 
-import "unicode"
+import (
+	"unicode"
+)
 
 type Token struct {
 	start, end, position uint32
@@ -94,6 +96,30 @@ func (tk SimpleTokenizer) Tokenize(s string) []Token {
 			tokens = append(tokens, token)
 		}
 	}
+
+	return tokens
+}
+
+type KeywordAnalyzer struct {
+	tokenizer    Tokenizer
+	tokenFilters []TokenFilterer
+}
+
+type KeywordTokenizer struct{}
+
+func NewKeywordTokenizer() KeywordTokenizer {
+	return KeywordTokenizer{}
+}
+
+func (tk KeywordTokenizer) Tokenize(s string) []Token {
+
+	tokens := []Token{}
+	token := Token{}
+	token.position = 0
+	token.start = 0
+	token.end = uint32(len(s))
+	token.value = s
+	tokens = append(tokens, token)
 
 	return tokens
 }
