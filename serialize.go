@@ -105,9 +105,14 @@ func deserializePostings(buf []byte) ([]Posting, error) {
 // Marshall inverted index to CDB database
 func (idx *InvertedIndex) MarshalIndex() error {
 	if idx.readOnly {
-		log.Println("Index is in 'read only' mode hence cannot be marshalled to disk")
+		log.Println("index is in 'read only' mode hence cannot be marshalled to disk")
 		return errors.New("index is in 'read only' mode")
 	}
+
+	// update index statitistics and make sure
+	// document categories are updated
+	idx.UpdateAvgFieldLen()
+	idx.BuildCategoryBitmap()
 
 	err := idx.serializeIndex()
 	if err != nil {
@@ -126,6 +131,9 @@ func (idx *InvertedIndex) MarshalIndex() error {
 		log.Println(err)
 		return err
 	}
+
+	// use committed flag to signal if index committed to disk
+	idx.commited = true
 
 	return nil
 }

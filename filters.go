@@ -34,6 +34,14 @@ func NewTurkishAccentFilter() TokenFilterer {
 	return filter
 }
 
+/* Filter replaces Turkish accented chracters with not accented versions
+"â" -> "a"
+"î" -> "i"
+"û" -> "u"
+"Â" -> "A"
+"Î" -> "İ"
+"Û" -> "U"
+*/
 func (tf turkishAccentFilter) Filter(tokens []Token) []Token {
 	replacer := strings.NewReplacer("â", "a", "î", "i", "û", "u", "Â", "A", "Î", "İ", "Û", "U")
 	for i := range tokens {
@@ -46,6 +54,8 @@ type turkishStemFilter struct {
 	dict map[string]string
 }
 
+// NewTurkishStemFilter loads 1.087.312 Turkish words and their stems into a map
+// it uses a simple map lookup to find stem of a token, if any
 func NewTurkishStemFilter() TokenFilterer {
 	filter := turkishStemFilter{}
 	filter.dict = loadTurkishStems()
@@ -95,6 +105,7 @@ func loadTurkishStems() map[string]string {
 
 type englishStemFilter struct{}
 
+// NewEnglishStemFilter creates a Porter Stemmer for english tokens
 func NewEnglishStemFilter() TokenFilterer {
 	filter := englishStemFilter{}
 	return filter
@@ -134,16 +145,16 @@ func (tf *stopFilter) Filter(tokens []Token) []Token {
 	return s
 }
 
-type maxLengthFilter struct {
+type maxTokenLengthFilter struct {
 	maxTokenLength int
 }
 
-func NewMaxLengthFilter(maxTokenLength int) TokenFilterer {
-	filter := &maxLengthFilter{maxTokenLength}
+func NewMaxTokenLengthFilter(maxTokenLength int) TokenFilterer {
+	filter := &maxTokenLengthFilter{maxTokenLength}
 	return filter
 }
 
-func (tf *maxLengthFilter) Filter(tokens []Token) []Token {
+func (tf *maxTokenLengthFilter) Filter(tokens []Token) []Token {
 
 	for i := range tokens {
 		r := []rune(tokens[i].value)

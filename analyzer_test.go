@@ -20,7 +20,7 @@ func TestMaxTokenLengthFilter(t *testing.T) {
 
 	simpleTokenizer := NewSimpleTokenizer()
 	simpleAnalyzer := NewSimpleAnalyzer(simpleTokenizer)
-	maxLengthFilter := NewMaxLengthFilter(5)
+	maxLengthFilter := NewMaxTokenLengthFilter(5)
 
 	simpleAnalyzer.AddTokenFilter(maxLengthFilter)
 

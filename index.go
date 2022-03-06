@@ -41,8 +41,11 @@ type InvertedIndex struct {
 	// Analyzer to use for text analysis and tokenization
 	analyzer Analyzer
 
-	// Storage backend
+	// check if index is read only, means loaded from file
 	readOnly bool
+
+	// Track if index is committed to disk
+	commited bool
 }
 
 func NewInvertedIndex(analyzer Analyzer) *InvertedIndex {
@@ -63,14 +66,23 @@ func NewInvertedIndex(analyzer Analyzer) *InvertedIndex {
 
 	// this is an in memory index
 	idx.readOnly = false
+
+	// new index is not committed by default
+	// call
 	return idx
+
 }
 
 func (idx *InvertedIndex) Add(doc string, categories []string) uint32 {
 
 	if idx.readOnly {
-		log.Fatalln("The index is in read only mode!")
+		log.Fatalln("the index is in read only mode!")
 	}
+
+	// make sure if a document added to the index the state has changed
+	// to signal that the index needs to be persisted for future use
+	idx.commited = false
+
 	// store docId as return value
 	docId := idx.docId
 
@@ -235,4 +247,27 @@ func (idx *InvertedIndex) AnalyzeText(value string) []string {
 	}
 
 	return s
+}
+
+func (idx *InvertedIndex) IsReadOnly() bool {
+	return idx.readOnly
+}
+
+func (idx *InvertedIndex) SetReadOnly() {
+	idx.readOnly = true
+}
+
+func (idx *InvertedIndex) EnableLiveIndex() bool {
+	if idx.readOnly {
+		termDictionary, err := loadTermDictionary()
+		if err != nil {
+			log.Println("failed to load term dictionary and make index live")
+			return false
+		}
+
+		idx.index = termDictionary
+		idx.readOnly = false
+	}
+
+	return true
 }

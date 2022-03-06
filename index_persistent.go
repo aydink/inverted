@@ -65,5 +65,8 @@ func NewInvertedIndexFromFile(analyzer Analyzer, loadIntoMemory bool) *InvertedI
 		idx.readOnly = true
 	}
 
+	// until a new document added to the index will be committed
+	idx.commited = true
+
 	return idx
 }

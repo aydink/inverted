@@ -3,3 +3,4 @@ inverted
 data/*.bz2
 out.txt
 .DS_Store
+workspace.code-workspace
