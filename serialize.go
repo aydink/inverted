@@ -201,6 +201,11 @@ func ReadPosting_Cdb(term string) []Posting {
 		log.Println(err)
 	}
 
+	// if term is not found in datebase then return emty posting
+	if buf == nil {
+		return make([]Posting, 0)
+	}
+
 	postings, err := deserializePostings(buf)
 	if err != nil {
 		log.Println(err)
