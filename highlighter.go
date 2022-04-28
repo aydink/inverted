@@ -28,6 +28,9 @@ func (hl *SimpleHighlighter) Highlight(document, query string) string {
 	queryTokens := hl.analyzer.Analyze(query)
 	textTokens := hl.analyzer.Analyze(document)
 
+	// eliminate duplicate query tokens
+	queryTokens = getUniqueTokens(queryTokens)
+
 	//fmt.Println(textTokens)
 	//fmt.Println(queryTokens)
 
