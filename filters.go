@@ -9,6 +9,9 @@ import (
 	"unicode"
 
 	"github.com/reiver/go-porterstemmer"
+	"golang.org/x/text/runes"
+	"golang.org/x/text/transform"
+	"golang.org/x/text/unicode/norm"
 )
 
 // TurkishLowercaseFilter lowercases all tokens
@@ -101,6 +104,49 @@ func loadTurkishStems() map[string]string {
 	}
 
 	return dict
+}
+
+// LowercaseFilter lowercases all tokens
+type lowercaseFilter struct{}
+
+func NewLowercaseFilter() TokenFilterer {
+	filter := lowercaseFilter{}
+	return filter
+}
+
+func (tf lowercaseFilter) Filter(tokens []Token) []Token {
+	for i := range tokens {
+		tokens[i].value = strings.ToLower(tokens[i].value)
+	}
+	return tokens
+}
+
+type accentFilter struct{}
+
+func NewAccentFilter() TokenFilterer {
+	filter := accentFilter{}
+	return filter
+}
+
+/* Filter replaces  accented chracters with not accented versions
+"â" -> "a"
+"î" -> "i"
+"û" -> "u"
+"Â" -> "A"
+"Î" -> "İ"
+"Û" -> "U"
+*/
+
+func isMn(r rune) bool {
+	return unicode.Is(unicode.Mn, r) // Mn: nonspacing marks
+}
+
+func (tf accentFilter) Filter(tokens []Token) []Token {
+	t := transform.Chain(norm.NFD, runes.Remove(runes.In(unicode.Mn)), norm.NFC)
+	for i := range tokens {
+		tokens[i].value, _, _ = transform.String(t, tokens[i].value)
+	}
+	return tokens
 }
 
 type englishStemFilter struct{}
